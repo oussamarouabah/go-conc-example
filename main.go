@@ -18,28 +18,28 @@ func Generator() <-chan int {
 }
 
 // worker
-func worker(ch <-chan int, out1, out2 chan<- int, wg *sync.WaitGroup) {
+func worker(ch <-chan int, even, odd chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for i := range ch {
 		if i%2 == 0 {
-			out1 <- i
+			even <- i
 		}
-		out2 <- i
+		odd <- i
 	}
 }
 
-func results(out1, out2 <-chan int, done chan struct{}) {
+func results(even, odd <-chan int, done chan struct{}) {
 	for {
 		select {
-		case i, ok := <-out1:
+		case i, ok := <-even:
 			if !ok {
-				out1 = nil
+				even = nil
 				continue
 			}
 			fmt.Printf("%v is even\n", i)
-		case i, ok := <-out2:
+		case i, ok := <-odd:
 			if !ok {
-				out2 = nil
+				odd = nil
 				continue
 			}
 			fmt.Printf("%v is odd\n", i)
@@ -54,25 +54,25 @@ func main() {
 	var (
 		wg sync.WaitGroup
 
-		out1 = make(chan int, 5)
-		out2 = make(chan int, 5)
+		even = make(chan int, 5)
+		odd  = make(chan int, 5)
 		done = make(chan struct{})
 	)
 
 	ch := Generator()
 
 	wg.Add(4)
-	go worker(ch, out1, out2, &wg)
-	go worker(ch, out1, out2, &wg)
-	go worker(ch, out1, out2, &wg)
-	go worker(ch, out1, out2, &wg)
+	go worker(ch, even, odd, &wg)
+	go worker(ch, even, odd, &wg)
+	go worker(ch, even, odd, &wg)
+	go worker(ch, even, odd, &wg)
 
 	go func() {
 		wg.Wait()
-		close(out1)
-		close(out2)
+		close(even)
+		close(odd)
 		done <- struct{}{}
 	}()
 
-	results(out1, out2, done)
+	results(even, odd, done)
 }
